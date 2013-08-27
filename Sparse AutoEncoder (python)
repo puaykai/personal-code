@@ -1,0 +1,138 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Aug 21 13:49:33 2013
+
+@author: puaykai
+"""
+import random
+import numpy as np
+import math
+
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
+    
+def H_product(A,B):
+    return np.asarray(A) * np.asarray(B)
+    
+v_sigmoid = np.vectorize(sigmoid)
+
+m1 = np.matrix([[1,0,0],[0,1,0],[0,0,1]])
+
+#ARG 1 - array of data (numpy matrix)
+#ARG 2 - array of number of nodes in each layer
+#ARG 3 - learning rate
+#ARG 4 - weight decay parameter
+def SAE(data_set, array_of_number_of_nodes, alpha, weight_decay):
+    
+    #ADJUSTABLES
+    
+    gaussian_mean = 0
+    gaussian_variance = 0.01
+    
+    ##############
+    
+    #INITIALIZATION#####
+    
+    #initialise WA - array of W's and delta_WA - array of delta_W's
+    
+    number_of_nodes = len(array_of_number_of_nodes)
+    
+    WA = []
+    a = []
+    bA = []
+    delta_bA = []
+    delta = []
+    del_W = []
+    del_b = []
+    delta_W = []
+    
+    #THIS IS FOR TESTING
+    WA = [np.matrix([[0.001,0.002,0.003,0.004],[0.005,0.006,0.007,0.008]]), np.matrix([[0.009,0.01],[0.011,0.012],[0.013,0.014],[0.015,0.016]])]
+    bA = [np.matrix([[-0.001],[-0.002]]), np.matrix([[-0.003],[-0.004],[-0.005],[-0.006]])]
+    #THIS IS FOR TESTING
+    
+    for row_amount in array_of_number_of_nodes:
+        
+        a.append(np.zeros((row_amount,1)))
+        
+    for index in range(number_of_nodes - 1):
+        
+        delta.append(np.zeros((array_of_number_of_nodes[index+1],1)))
+        
+        del_W.append(np.zeros((array_of_number_of_nodes[index+1], array_of_number_of_nodes[index])))
+        
+        del_b.append(np.zeros((array_of_number_of_nodes[index+1],1)))
+        
+        delta_W.append(np.zeros((array_of_number_of_nodes[index+1],array_of_number_of_nodes[index])))
+        
+        delta_bA.append(np.zeros((array_of_number_of_nodes[index+1],1)))
+        
+        #WA.append(np.random.normal(gaussian_mean, gaussian_variance, (array_of_number_of_nodes[index+1],array_of_number_of_nodes[index])))
+        
+        #bA.append(np.random.normal(gaussian_mean, gaussian_variance, (array_of_number_of_nodes[index+1],1)))   
+    
+
+    ####################
+    
+    for data in data_set:
+        
+        #FORWARD FEED******************
+        
+        a[0] = data
+        
+        for i in range(number_of_nodes-1):
+            
+            a[i+1] = v_sigmoid(WA[i]*a[i] + bA[i])
+            
+        #*******************************
+            
+        #print a
+        #ERROR CALCULATION****************
+        delta[number_of_nodes-2] = H_product( H_product((a[number_of_nodes-1] -data) , a[number_of_nodes-1]) , (np.ones(a[number_of_nodes-1].shape ) - a[number_of_nodes-1]))
+        
+        count = number_of_nodes - 3
+        
+        while(count>-1):
+            
+            delta[count] = H_product( H_product((WA[count+1].transpose() * delta[count+1]) , a[count+1]) , (np.ones(a[count+1].shape)) - a[count+1])
+            
+            count = count-1
+            
+        #**********************************
+        #print delta
+        #GRADIENT CALCULATION*************
+        for index in range(number_of_nodes -1):
+            
+            del_W[index] = delta[index] * a[index].transpose()
+            
+            del_b[index] = delta[index]
+        
+        #*********************************
+        #print del_W
+        #print "del_b",del_b
+        #UPDATE CHANGE IN W and b
+        
+        for index in range(number_of_nodes-1):
+            
+            delta_W[index] = delta_W[index] + del_W[index]
+            
+            delta_bA[index] = delta_bA[index] +del_b[index]
+        
+        ###################################
+        #print "delta_W" , delta_W
+        #print "delta_bA", delta_bA
+        #UPDATE parameters
+        
+        for index in range(number_of_nodes -1):
+            
+            WA[index] = WA[index] - alpha *( ( delta_W[index] / len(data_set)) + weight_decay * WA[index])
+            
+            bA[index] = bA[index] - alpha * ( delta_bA[index] / len(data_set))
+            
+        ################################
+    
+    #print "W",WA #prints the results for checking
+    #print "b",bA #prints the results for checking
+
+
+SAE([np.matrix([[1],[2],[3],[4]])], [4,2,4],0.01,0.02) #test
